@@ -1,11 +1,11 @@
 import urllib.request as r
 import json
 import numpy as np
-from modular_functions import save_to_json
+from api_call_scripts.modular_functions import save_to_json
 
 BASE = "https://api.clashroyale.com/v1"
 
-def load_api_key(path="../api_key.txt"):
+def load_api_key(path="api_key.txt"):
     with open(path, "r") as f:
         return f.readline()
 
