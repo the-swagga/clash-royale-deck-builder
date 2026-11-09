@@ -4,7 +4,7 @@ import torch
 from torch.utils.data import Dataset
 import torch.nn as nn
 
-class Dataset(Dataset):
+class DeckBuilderDataset(Dataset):
     def __init__(self, path, num_cards, is_train, min_masked=1, max_masked=7, seed=38):
         with open(path, encoding="utf-8") as f:
             records = json.load(f)
@@ -46,7 +46,7 @@ class Dataset(Dataset):
         return visible_cards, missing_cards, self.weights[index]
 
 
-class Model(nn.Module):
+class DeckBuilderModel(nn.Module):
     def __init__(self, input_size, output_size):
         super().__init__()
 
