@@ -1,10 +1,21 @@
+import math
 import json
 import random
 import glob
 from api_call_scripts.modular_functions import save_to_json
 
-random.seed(38)
+tower_hp_scale = 1000
 
+def calc_record_weight(rank_diff, crown_diff, tower_hp_diff):
+    rank_diff_bonus = 0.3 * rank_diff
+    weight = (1.0 * crown_diff) + ((0.3 * tower_hp_diff) / tower_hp_scale)
+    weight = weight + rank_diff_bonus
+    sigmoid = 1 / (1 + math.exp(-weight))
+    out_weight = 0.2 + (sigmoid * 0.8)
+
+    return out_weight
+
+random.seed(38)
 
 data_files = sorted(glob.glob("../raw_data/top_1k_battle_log_*.json"))
 
@@ -18,13 +29,14 @@ for file in data:
     for battle_log in file:
         player_key = battle_log[0]["Player Name"]
         for record in battle_log:
+            if record["Rank Diff"] is None:
+                continue
             if len(record["Deck"]) == 8:
                 records.append({"player": player_key,
-                                "rank_diff": record["Rank Diff"],
                                 "deck": record["Deck"],
-                                "won": record["Player Won"],
-                                "crown_diff": record["Crown Diff"],
-                                "tower_hp_diff": record["Tower HP Diff"]
+                                "weight": calc_record_weight(record["Rank Diff"],
+                                                             record["Crown Diff"],
+                                                             record["Tower HP Diff"])
                                 })
 
 unique_players = set()
