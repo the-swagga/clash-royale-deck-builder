@@ -65,6 +65,3 @@ class Model(nn.Module):
         x = self.fc4(x)
 
         return x
-
-
-def weighted_loss(logits, target, weight):
