@@ -4,9 +4,10 @@ from model.model import DeckBuilderModel
 
 
 # --- Constants --- #
-MAX_ATTEMPTS = 1000
 MIN_DECKS_TO_GENERATE = 1
 MAX_DECKS_TO_GENERATE = 10
+MAX_CARD_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
+MAX_DECK_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 DECK_SIZE = 8
 TOP_K_SAMPLE_PERCENTAGE = 0.2
 
@@ -31,21 +32,60 @@ model = DeckBuilderModel(len(card_ids))
 model.load_state_dict(torch.load("saved_models/deck_builder_model.pkl"))
 model.eval()
 
-with open("deck_builder_rules/banned_pairs.json", encoding="utf-8") as f:
-    banned_pairs = json.load(f)
+with open("deck_builder_rules/wincons.json", encoding="utf-8") as f:
+    wincons = json.load(f)
 
-wincon_names = set(banned_pairs["Banned Wincon Pairs"]["All Wincons"])
-wincon_ids = []
+wincon_names = set(wincons["All Wincons"])
+wincon_ids = set()
 for name in wincon_names:
-    wincon_ids.append(card_ids[name])
+    wincon_ids.add(card_ids[name])
 
 used_wincons_names = {}
-for name in wincon_names:
+for name in wincons["Hard Wincons"]:
     used_wincons_names[card_ids[name]] = False
 
 
-# --- Helper functions --- #
-def identical_decks_check(deck_1, deck_2): # Check if two generated decks are identical
+# --- Misc helper functions --- #
+def get_card_type(card):
+    if card in ["Archer Queen", "Boss Bandit", "Goblinstein", "Golden Knight",
+                "Little Prince", "Mighty Miner", "Monk","Skeleton King"]:
+        return "Champion"
+    if card[:3] == "Evo":
+        return "Evo"
+    if card[:4] == "Hero":
+        return "Hero"
+
+    return "Base"
+
+
+def identical_base_card_check(card1, card2):
+    card1_type = get_card_type(card1)
+    card2_type = get_card_type(card2)
+    accepted_types = ["Evo", "Hero"]
+    if card1_type not in accepted_types and card2_type not in accepted_types:
+        return card1 == card2
+
+    if card1_type == "Evo":
+        stripped_card1 = card1.removeprefix("Evo ")
+    elif card1_type == "Hero":
+        stripped_card1 = card1.removeprefix("Hero ")
+    else:
+        stripped_card1 = card1
+
+    if card2_type == "Evo":
+        stripped_card2 = card2.removeprefix("Evo ")
+    elif card2_type == "Hero":
+        stripped_card2 = card2.removeprefix("Hero ")
+    else:
+        stripped_card2 = card2
+
+    if stripped_card1 == stripped_card2:
+        return True
+    else:
+        return False
+
+
+def identical_decks_check(deck_1, deck_2):
     deck_1.sort()
     deck_2.sort()
     if deck_1 == deck_2:
@@ -54,6 +94,42 @@ def identical_decks_check(deck_1, deck_2): # Check if two generated decks are id
         return False
 
 
+def get_evo_champion_hero_count(deck):
+    evo_count = 0
+    champion_hero_count = 0
+
+    for card in deck:
+        card_type = get_card_type(card)
+        if card_type == "Evo":
+            evo_count += 1
+        elif card_type == "Hero" or card_type == "Champion":
+            champion_hero_count += 1
+
+    total_count = evo_count + champion_hero_count
+
+    return evo_count, champion_hero_count, total_count
+
+
+def is_eligible_card_type(deck, card):
+    card_type = get_card_type(card)
+    if card_type == "Base":
+        return True
+
+    evo_count, champion_hero_count, total_count = get_evo_champion_hero_count(deck)
+
+    if total_count == 3:
+        return False
+    if card_type == "Evo" and evo_count == 2:
+        return False
+    if card_type == "Hero" and champion_hero_count == 2:
+        return False
+    if card_type == "Champion" and champion_hero_count == 2:
+        return False
+
+    return True
+
+
+# --- Main helper functions --- #
 def generate_next_card(out_deck, excluded_cards): # Predict the next card given an incomplete deck
     visible = torch.zeros(len(card_ids))
     for card in out_deck:
@@ -76,6 +152,9 @@ def generate_next_card(out_deck, excluded_cards): # Predict the next card given 
     final_probabilities = final_probabilities / final_probabilities.sum()
     prediction = torch.multinomial(final_probabilities, 1).item()
 
+    if not is_eligible_card_type(out_deck, card_names[prediction]):
+        return None
+
     return prediction
 
 
@@ -83,19 +162,37 @@ def generate_deck(input_cards, excluded_cards, used_wincons): # Generate a deck 
     out_deck = input_cards.copy()
     picked_wincons = []
     has_wincon = False
-    for card in input_card_names:
+    for card in input_cards:
+        if card_ids[card] in wincon_ids:
+            has_wincon = True
         if card_ids[card] in used_wincons:
             used_wincons[card_ids[card]] = True
-            has_wincon = True
 
-    while len(out_deck) < DECK_SIZE:
+    attempts = 0
+    while len(out_deck) < DECK_SIZE and attempts < MAX_CARD_ATTEMPTS:
+        attempts += 1
+
         prediction = generate_next_card(out_deck, excluded_cards)
+        if prediction is None:
+            continue
 
+        is_duplicate = False
+        for card in out_deck:
+            is_duplicate = identical_base_card_check(card_names[prediction], card)
+            if is_duplicate:
+                break
+        if is_duplicate:
+            continue
+
+        if prediction in wincon_ids:
+            has_wincon = True
         if prediction in used_wincons:
             picked_wincons.append(prediction)
-            has_wincon = True
 
         out_deck.append(card_names[prediction])
+
+    while len(out_deck) < DECK_SIZE:
+        out_deck.append("") # For cases where an incomplete deck was generated (ie max attempts exceeded)
 
     return out_deck, picked_wincons, has_wincon
 
@@ -109,10 +206,12 @@ def output(num_decks_to_generate, input_cards, excluded_cards, used_wincons): # 
 
     unique_decks_generated = []
     attempts = 0
-    while len(unique_decks_generated) < num_decks_to_generate and attempts < MAX_ATTEMPTS:
+    while len(unique_decks_generated) < num_decks_to_generate and attempts < MAX_DECK_ATTEMPTS:
         attempts += 1
 
         out_deck, picked_wincons, has_wincon = generate_deck(input_cards, excluded_cards, used_wincons)
+        if "" in out_deck:
+            continue
 
         deck_already_generated = False
         for deck in unique_decks_generated:
@@ -120,7 +219,8 @@ def output(num_decks_to_generate, input_cards, excluded_cards, used_wincons): # 
                 deck_already_generated = True
                 break
 
-        if has_wincon and not deck_already_generated:
+        #if has_wincon and not deck_already_generated:
+        if not deck_already_generated:
             for id in picked_wincons:
                 used_wincons_names[id] = True
             sorted_out_deck = out_deck.copy()
@@ -131,4 +231,4 @@ def output(num_decks_to_generate, input_cards, excluded_cards, used_wincons): # 
             unique_decks_generated.append(out_deck)
 
 
-output(num_decks_to_generate=5, input_cards=input_card_names, excluded_cards=excluded_card_names, used_wincons=used_wincons_names)
+output(num_decks_to_generate=10, input_cards=input_card_names, excluded_cards=excluded_card_names, used_wincons=used_wincons_names)
