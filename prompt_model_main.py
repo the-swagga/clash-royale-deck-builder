@@ -10,12 +10,12 @@ MAX_CARD_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 MAX_DECK_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 DECK_SIZE = 8
 TOP_K_SAMPLE_PERCENTAGE_RANGE = [0.2, 1.0]
-META_TEMPERATURE_RANGE = [0.1, 5]
+META_TEMPERATURE_RANGE = [1, 10]
 
 # --- Prompt --- #
 num_decks = 10
-meta = 0
-input_card_names = []
+meta = 100
+input_card_names = ["Goblin Curse", "Battle Healer", "Evo Ice Spirit"]
 excluded_card_names = []
 for card in input_card_names:
     if card in excluded_card_names:
@@ -246,6 +246,8 @@ def output(num_decks_to_generate, meta_percentage, input_cards, excluded_cards, 
                 print(card)
             print()
             unique_decks_generated.append(out_deck)
+
+    print(f"Generated {len(unique_decks_generated)} decks.")
 
 
 output(num_decks_to_generate=num_decks, meta_percentage = meta, input_cards=input_card_names, excluded_cards=excluded_card_names, used_wincons=used_wincons_names)
