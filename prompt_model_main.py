@@ -6,7 +6,11 @@ MAX_ATTEMPTS = 1000
 MIN_DECKS_TO_GENERATE = 1
 MAX_DECKS_TO_GENERATE = 10
 
-input_card_names = ["Evo Mega Knight", "Evo P.E.K.K.A", "Giant Skeleton", "Boss Bandit", "Lightning", "Prince"]
+input_card_names = ["Evo Goblin Barrel"]
+excluded_card_names = []
+for card in input_card_names:
+    if card in excluded_card_names:
+        raise Exception(f"{card} in input cards and excluded cards.")
 
 with open("processed_data/card_ids.json", encoding="utf-8") as f:
     card_ids  = json.load(f)
@@ -64,6 +68,8 @@ def output(num_decks_to_generate):
             for wincon_id, used in used_wincons.items():
                 if used:
                     logits[0, wincon_id] = float("-inf")
+            for card in excluded_card_names:
+                logits[0, card_ids[card]] = float("-inf")
             probabilities = torch.softmax(logits, dim=-1)
 
             top_probabilities, top_indices = torch.topk(probabilities, int(len(card_ids) * 0.2), dim=-1)
@@ -105,4 +111,4 @@ def identical_decks_check(deck_1, deck_2):
     else:
         return False
 
-output(num_decks_to_generate=10)
+output(num_decks_to_generate=5)
