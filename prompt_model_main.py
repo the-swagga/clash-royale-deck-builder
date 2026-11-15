@@ -9,11 +9,12 @@ MAX_DECKS_TO_GENERATE = 10
 MAX_CARD_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 MAX_DECK_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 DECK_SIZE = 8
-TOP_K_SAMPLE_PERCENTAGE = 0.2
+TOP_K_SAMPLE_PERCENTAGE_RANGE = [0.2, 1.0]
 
 
 # --- Prompt --- #
-input_card_names = ["Evo Goblin Barrel"]
+meta = 100
+input_card_names = ["Evo Witch", "Evo Wizard"]
 excluded_card_names = []
 for card in input_card_names:
     if card in excluded_card_names:
@@ -129,8 +130,19 @@ def is_eligible_card_type(deck, card):
     return True
 
 
+def meta_percentage_to_top_k_sample_percentage(meta_percentage, top_k_range):
+    if meta_percentage < 0:
+        meta_percentage = 0
+    elif meta_percentage > 100:
+        meta_percentage = 100
+
+    flipped_meta = 1 - (meta_percentage / 100)
+
+    return top_k_range[0] + (top_k_range[1] - top_k_range[0]) * flipped_meta
+
+
 # --- Main helper functions --- #
-def generate_next_card(out_deck, excluded_cards): # Predict the next card given an incomplete deck
+def generate_next_card(meta_percentage, out_deck, excluded_cards): # Predict the next card given an incomplete deck
     visible = torch.zeros(len(card_ids))
     for card in out_deck:
         visible[card_ids[card]] = 1.0
@@ -146,7 +158,7 @@ def generate_next_card(out_deck, excluded_cards): # Predict the next card given 
         logits[0, card_ids[card]] = float("-inf")
     probabilities = torch.softmax(logits, dim=-1)
 
-    top_probabilities, top_indices = torch.topk(probabilities, int(len(card_ids) * 0.2), dim=-1)
+    top_probabilities, top_indices = torch.topk(probabilities,int(len(card_ids) * meta_percentage_to_top_k_sample_percentage(meta_percentage, TOP_K_SAMPLE_PERCENTAGE_RANGE)), dim=-1)
     final_probabilities = torch.zeros_like(probabilities)
     final_probabilities.scatter_(1, top_indices, top_probabilities)
     final_probabilities = final_probabilities / final_probabilities.sum()
@@ -158,7 +170,7 @@ def generate_next_card(out_deck, excluded_cards): # Predict the next card given 
     return prediction
 
 
-def generate_deck(input_cards, excluded_cards, used_wincons): # Generate a deck given an incomplete input deck and a list of excluded cards
+def generate_deck(meta_percentage, input_cards, excluded_cards, used_wincons): # Generate a deck given an incomplete input deck and a list of excluded cards
     out_deck = input_cards.copy()
     picked_wincons = []
     has_wincon = False
@@ -172,7 +184,7 @@ def generate_deck(input_cards, excluded_cards, used_wincons): # Generate a deck 
     while len(out_deck) < DECK_SIZE and attempts < MAX_CARD_ATTEMPTS:
         attempts += 1
 
-        prediction = generate_next_card(out_deck, excluded_cards)
+        prediction = generate_next_card(meta_percentage, out_deck, excluded_cards)
         if prediction is None:
             continue
 
@@ -198,7 +210,7 @@ def generate_deck(input_cards, excluded_cards, used_wincons): # Generate a deck 
 
 
 # --- Main function --- #
-def output(num_decks_to_generate, input_cards, excluded_cards, used_wincons): # Generate a specified amount of decks
+def output(num_decks_to_generate, meta_percentage, input_cards, excluded_cards, used_wincons): # Generate a specified amount of decks
     if num_decks_to_generate < MIN_DECKS_TO_GENERATE:
         num_decks_to_generate = MIN_DECKS_TO_GENERATE
     elif num_decks_to_generate > MAX_DECKS_TO_GENERATE:
@@ -209,7 +221,7 @@ def output(num_decks_to_generate, input_cards, excluded_cards, used_wincons): # 
     while len(unique_decks_generated) < num_decks_to_generate and attempts < MAX_DECK_ATTEMPTS:
         attempts += 1
 
-        out_deck, picked_wincons, has_wincon = generate_deck(input_cards, excluded_cards, used_wincons)
+        out_deck, picked_wincons, has_wincon = generate_deck(meta_percentage, input_cards, excluded_cards, used_wincons)
         if "" in out_deck:
             continue
 
@@ -231,4 +243,4 @@ def output(num_decks_to_generate, input_cards, excluded_cards, used_wincons): # 
             unique_decks_generated.append(out_deck)
 
 
-output(num_decks_to_generate=10, input_cards=input_card_names, excluded_cards=excluded_card_names, used_wincons=used_wincons_names)
+output(num_decks_to_generate=10, meta_percentage = meta, input_cards=input_card_names, excluded_cards=excluded_card_names, used_wincons=used_wincons_names)
