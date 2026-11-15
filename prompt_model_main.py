@@ -10,11 +10,12 @@ MAX_CARD_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 MAX_DECK_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 DECK_SIZE = 8
 TOP_K_SAMPLE_PERCENTAGE_RANGE = [0.2, 1.0]
-
+META_TEMPERATURE_RANGE = [0.1, 5]
 
 # --- Prompt --- #
-meta = 100
-input_card_names = ["Evo Witch", "Evo Wizard"]
+num_decks = 10
+meta = 0
+input_card_names = []
 excluded_card_names = []
 for card in input_card_names:
     if card in excluded_card_names:
@@ -130,7 +131,7 @@ def is_eligible_card_type(deck, card):
     return True
 
 
-def meta_percentage_to_top_k_sample_percentage(meta_percentage, top_k_range):
+def meta_percentage_to_range_value(meta_percentage, value_range):
     if meta_percentage < 0:
         meta_percentage = 0
     elif meta_percentage > 100:
@@ -138,7 +139,7 @@ def meta_percentage_to_top_k_sample_percentage(meta_percentage, top_k_range):
 
     flipped_meta = 1 - (meta_percentage / 100)
 
-    return top_k_range[0] + (top_k_range[1] - top_k_range[0]) * flipped_meta
+    return value_range[0] + (value_range[1] - value_range[0]) * flipped_meta
 
 
 # --- Main helper functions --- #
@@ -156,9 +157,13 @@ def generate_next_card(meta_percentage, out_deck, excluded_cards): # Predict the
             logits[0, wincon_id] = float("-inf")
     for card in excluded_cards:
         logits[0, card_ids[card]] = float("-inf")
+
+    temperature = meta_percentage_to_range_value(meta_percentage, META_TEMPERATURE_RANGE)
+    logits = logits / temperature
+
     probabilities = torch.softmax(logits, dim=-1)
 
-    top_probabilities, top_indices = torch.topk(probabilities,int(len(card_ids) * meta_percentage_to_top_k_sample_percentage(meta_percentage, TOP_K_SAMPLE_PERCENTAGE_RANGE)), dim=-1)
+    top_probabilities, top_indices = torch.topk(probabilities,int(len(card_ids) * meta_percentage_to_range_value(meta_percentage, TOP_K_SAMPLE_PERCENTAGE_RANGE)), dim=-1)
     final_probabilities = torch.zeros_like(probabilities)
     final_probabilities.scatter_(1, top_indices, top_probabilities)
     final_probabilities = final_probabilities / final_probabilities.sum()
@@ -243,4 +248,4 @@ def output(num_decks_to_generate, meta_percentage, input_cards, excluded_cards, 
             unique_decks_generated.append(out_deck)
 
 
-output(num_decks_to_generate=10, meta_percentage = meta, input_cards=input_card_names, excluded_cards=excluded_card_names, used_wincons=used_wincons_names)
+output(num_decks_to_generate=num_decks, meta_percentage = meta, input_cards=input_card_names, excluded_cards=excluded_card_names, used_wincons=used_wincons_names)
