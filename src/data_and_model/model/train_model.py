@@ -5,9 +5,9 @@ from torch.utils.data import DataLoader
 from model import DeckBuilderDataset, DeckBuilderModel
 
 # --- Training Variables --- #
-TRAINING_SET_PATH = "../processed_data/training_records.json"
-VALIDATION_SET_PATH = "../processed_data/validation_records.json"
-CARD_IDS_PATH = "../processed_data/card_ids.json"
+TRAINING_SET_PATH = "../../../data/processed_data/training_records.json"
+VALIDATION_SET_PATH = "../../../data/processed_data/validation_records.json"
+CARD_IDS_PATH = "../../../data/processed_data/card_ids.json"
 BATCH_SIZE = 128
 EPOCH_NUM = 128
 LEARN_RATE = 0.005
@@ -28,7 +28,7 @@ def train_model(seed=38, show_loss=True):
     validation_loader = DataLoader(validation_set, batch_size=BATCH_SIZE)
 
     model = DeckBuilderModel(num_cards_seen).to(device)
-    save_path = "../saved_models/deck_builder_model.pkl"
+    save_path = "../../../saved_models/main_model.pkl"
 
     optimiser = torch.optim.Adam(model.parameters(), lr=LEARN_RATE)
     loss_function = nn.BCEWithLogitsLoss(reduction="none")

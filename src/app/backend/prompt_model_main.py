@@ -1,6 +1,6 @@
 import json
 import torch
-from model.model import DeckBuilderModel
+from src.data_and_model.model.model import DeckBuilderModel
 
 
 # --- Constants --- #
@@ -12,10 +12,11 @@ DECK_SIZE = 8
 TOP_K_SAMPLE_PERCENTAGE_RANGE = [0.2, 1.0]
 META_TEMPERATURE_RANGE = [1, 10]
 
+
 # --- Prompt --- #
-num_decks = 10
+num_decks = 5
 meta = 100
-input_card_names = ["Goblin Curse", "Battle Healer", "Evo Ice Spirit"]
+input_card_names = ["Goblin Curse"]
 excluded_card_names = []
 for card in input_card_names:
     if card in excluded_card_names:
@@ -23,7 +24,7 @@ for card in input_card_names:
 
 
 # --- Load data and model --- #
-with open("processed_data/card_ids.json", encoding="utf-8") as f:
+with open("../../../data/processed_data/card_ids.json", encoding="utf-8") as f:
     card_ids  = json.load(f)
 
 card_names = {}
@@ -31,7 +32,7 @@ for card, id in card_ids.items():
     card_names[id] = card
 
 model = DeckBuilderModel(len(card_ids))
-model.load_state_dict(torch.load("saved_models/deck_builder_model.pkl"))
+model.load_state_dict(torch.load("../../../saved_models/main_model.pkl"))
 model.eval()
 
 with open("deck_builder_rules/wincons.json", encoding="utf-8") as f:

@@ -1,7 +1,7 @@
 import urllib.request as r
 import json
 import numpy as np
-from api_call_scripts.modular_functions import save_to_json
+from src.data_and_model.api_call_scripts.modular_functions import save_to_json
 
 BASE = "https://api.clashroyale.com/v1"
 

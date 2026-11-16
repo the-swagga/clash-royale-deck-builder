@@ -2,13 +2,13 @@ import math
 import json
 import random
 import glob
-from api_call_scripts.modular_functions import save_to_json
+from src.data_and_model.api_call_scripts.modular_functions import save_to_json
 
-tower_hp_scale = 1000
+TOWER_HP_SCALE = 1000
 
 def calc_record_weight(rank_diff, crown_diff, tower_hp_diff):
     rank_diff_bonus = 0.3 * rank_diff
-    weight = (1.0 * crown_diff) + ((0.3 * tower_hp_diff) / tower_hp_scale)
+    weight = (1.0 * crown_diff) + ((0.3 * tower_hp_diff) / TOWER_HP_SCALE)
     weight = weight + rank_diff_bonus
     sigmoid = 1 / (1 + math.exp(-weight))
     out_weight = 0.2 + (sigmoid * 0.8)
@@ -63,7 +63,7 @@ for record in training_records + validation_records:
         all_cards.add(card)
 
 card_ids = {}
-for i, card in enumerate(sorted(all_cards)):#
+for i, card in enumerate(sorted(all_cards)):
     card_ids[card] = i
 
 for record in training_records + validation_records:
@@ -72,6 +72,6 @@ for record in training_records + validation_records:
         processed_deck.append(card_ids[card])
     record["deck"] = processed_deck
 
-save_to_json("../processed_data/card_ids.json", card_ids)
-save_to_json("../processed_data/training_records.json", training_records)
-save_to_json("../processed_data/validation_records.json", validation_records)
+save_to_json("../../../data/processed_data/card_ids.json", card_ids)
+save_to_json("../../../data/processed_data/training_records.json", training_records)
+save_to_json("../../../data/processed_data/validation_records.json", validation_records)
