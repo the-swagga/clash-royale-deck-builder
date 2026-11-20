@@ -1,11 +1,14 @@
 import urllib.request as r
 import json
 from src.data_and_model.api_call_scripts.modular_functions import save_to_json
+from pathlib import Path
 
 BASE = "https://api.clashroyale.com/v1"
 
+api_key_path = Path(__file__).resolve().parent / "api_key.txt"
+
 def save_top_1k_players(file_path):
-    with open("api_key.txt", "r") as f:
+    with open(api_key_path, "r") as f:
         key = f.readline()
         endpoint = "/locations/global/pathoflegend/players"
         request = r.Request(BASE + endpoint, None, {"Authorization": "Bearer %s" % key})
