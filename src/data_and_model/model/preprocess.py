@@ -47,6 +47,7 @@ for file in data:
                                 "deck": record["Deck"],
                                 "weight": record_weight
                                 })
+print(f"Total records: {len(unique_records)}")
 
 unique_players = set()
 for record in records:
