@@ -17,7 +17,7 @@ def calc_record_weight(rank_diff, crown_diff, tower_hp_diff):
 
 random.seed(38)
 
-data_files = sorted(glob.glob("../raw_data/top_1k_battle_log_*.json"))
+data_files = sorted(glob.glob("../../../data/raw_data/top_1k_battle_log_*.json"))
 
 data = []
 for path in data_files:
@@ -25,18 +25,27 @@ for path in data_files:
         data.append(json.load(f))
 
 records = []
+unique_records = set()
 for file in data:
     for battle_log in file:
         player_key = battle_log[0]["Player Name"]
         for record in battle_log:
             if record["Rank Diff"] is None:
                 continue
+
+            record_weight = calc_record_weight(record["Rank Diff"],
+                                               record["Crown Diff"],
+                                               record["Tower HP Diff"])
+
+            unique_identifier = (player_key, record_weight)
+            if unique_identifier in unique_records:
+                continue
+
             if len(record["Deck"]) == 8:
+                unique_records.add(unique_identifier)
                 records.append({"player": player_key,
                                 "deck": record["Deck"],
-                                "weight": calc_record_weight(record["Rank Diff"],
-                                                             record["Crown Diff"],
-                                                             record["Tower HP Diff"])
+                                "weight": record_weight
                                 })
 
 unique_players = set()
