@@ -9,13 +9,18 @@ TRAINING_SET_PATH = "../../../data/processed_data/training_records.json"
 VALIDATION_SET_PATH = "../../../data/processed_data/validation_records.json"
 CARD_IDS_PATH = "../../../data/processed_data/card_ids.json"
 BATCH_SIZE = 128
-EPOCH_NUM = 128
-LEARN_RATE = 0.005
+EPOCH_NUM = 256
+LEARN_RATE = 0.002
 PATIENCE = 15
 
 def train_model(seed=38, show_loss=True):
     torch.manual_seed(seed)
-    device = "cuda" if torch.cuda.is_available() else "cpu"
+    if torch.cuda.is_available():
+        device = "cuda"
+        print("USING GPU")
+    else:
+        device = "cpu"
+        print("USING CPU")
 
     with open(CARD_IDS_PATH, encoding="utf-8") as f:
         card_ids = json.load(f)
