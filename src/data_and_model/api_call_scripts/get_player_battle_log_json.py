@@ -107,7 +107,7 @@ def parse_battle(battle):
 
 
 def fetch_process_save_battle_log(api_key_path, top_1k_players_path, data_directory_path):
-    key = load_api_key(api_key_path)
+    key = load_api_key()
 
     top_1k_players_tags = read_top_1k_players_tags(top_1k_players_path)
 

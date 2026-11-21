@@ -1,11 +1,8 @@
 import urllib.request as r
 import json
 from src.data_and_model.api_call_scripts.modular_functions import get_base_url, load_api_key, save_to_json
-from pathlib import Path
 
 BASE = get_base_url()
-
-api_key_path = Path(__file__).resolve().parent / "api_key.txt"
 
 def save_top_1k_players(file_path):
     key = load_api_key()
