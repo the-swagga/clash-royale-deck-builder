@@ -1,19 +1,18 @@
 import urllib.request as r
 import json
-from src.data_and_model.api_call_scripts.modular_functions import save_to_json
+from src.data_and_model.api_call_scripts.modular_functions import get_base_url, load_api_key, save_to_json
 from pathlib import Path
 
-BASE = "https://api.clashroyale.com/v1"
+BASE = get_base_url()
 
 api_key_path = Path(__file__).resolve().parent / "api_key.txt"
 
 def save_top_1k_players(file_path):
-    with open(api_key_path, "r") as f:
-        key = f.readline()
-        endpoint = "/locations/global/pathoflegend/players"
-        request = r.Request(BASE + endpoint, None, {"Authorization": "Bearer %s" % key})
-        response = r.urlopen(request).read().decode("utf-8")
-        players_json = json.loads(response)
+    key = load_api_key()
+    endpoint = "/locations/global/pathoflegend/players"
+    request = r.Request(BASE + endpoint, None, {"Authorization": "Bearer %s" % key})
+    response = r.urlopen(request).read().decode("utf-8")
+    players_json = json.loads(response)
 
     players_tag_name_rank = []
     for player in players_json["items"]:

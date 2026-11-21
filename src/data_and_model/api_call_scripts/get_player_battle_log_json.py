@@ -1,14 +1,9 @@
 import urllib.request as r
 import json
 import numpy as np
-from src.data_and_model.api_call_scripts.modular_functions import save_to_json
+from src.data_and_model.api_call_scripts.modular_functions import get_base_url, load_api_key, save_to_json
 
-BASE = "https://api.clashroyale.com/v1"
-
-def load_api_key(path="api_key.txt"):
-    with open(path, "r") as f:
-        return f.readline()
-
+BASE = get_base_url()
 
 def read_top_1k_players_tags(file_path):
     with open(file_path, "r", encoding="utf-8") as f:
