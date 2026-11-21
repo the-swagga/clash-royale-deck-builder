@@ -10,13 +10,13 @@ MAX_CARD_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 MAX_DECK_ATTEMPTS = MAX_DECKS_TO_GENERATE * 10
 DECK_SIZE = 8
 TOP_K_SAMPLE_PERCENTAGE_RANGE = [0.2, 1.0]
-META_TEMPERATURE_RANGE = [1, 10]
+META_TEMPERATURE_RANGE = [1, 5]
 
 
 # --- Prompt --- #
 num_decks = 5
 meta = 100
-input_card_names = ["Goblin Curse"]
+input_card_names = ["Clone", "Flying Machine"]
 excluded_card_names = []
 for card in input_card_names:
     if card in excluded_card_names:
